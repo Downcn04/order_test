@@ -40,6 +40,19 @@
 - 并发安全：条件更新扣分 + 数据库唯一约束
 - 外部 API 超时/报错时由 Worker 对账
 
+## 已完成范围
+
+- 用户注册 / 登录 / 登出，Cookie 会话，用户数据隔离
+- 预置任务、一次性领取积分、积分余额与流水（含初始赠送记录）
+- 商品列表：本地商品 + 外部兑换码商品
+- 兑换主流程：先扣分、幂等下单、并发安全
+- 订单状态机：处理中 / 已到账 / 已退款 / 需处理，可查看兑换码
+- 外部 API 失败分类、退款、Worker 自动对账、手动重新查询
+- Fake Provider 故障注入、Real Provider（服务端调用 + 可选代理）
+- 迁移、seed、首次启动脚本、单元测试与集成测试
+
+未包含：运营后台、真实支付、短信验证 / 找回密码、线上部署。
+
 ---
 
 ## 首次打开
@@ -63,6 +76,8 @@ npm run setup
 npm run start:all
 ```
 
+> 如果拉取 Docker Hub 镜像很慢或失败（部分地区网络），可配置 Docker 镜像加速，或改用方式 B / 自行安装 PostgreSQL。数据库端口在 `docker-compose.yml` 与 `.env` 中保持一致即可。
+
 ### 方式 B：Windows 本机 PostgreSQL（不需要 Docker）
 
 ```bash
@@ -81,7 +96,7 @@ npm run start:all
 | 账号 | 密码 | 初始积分 |
 |---|---|---|
 | `alice@example.com` | `demo1234` | 0（体验做任务流程） |
-| `bob@example.com` | `demo1234` | 200（快速体验兑换） |
+| `bob@example.com` | `demo1234` | 200（初始赠送，流水中可见） |
 
 默认 `PROVIDER_MODE=fake`，**不需要 API Key**，兑换外部商品会即时返回假兑换码。
 
