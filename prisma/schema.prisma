@@ -1,0 +1,146 @@
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider = "postgresql"
+  url      = env("DATABASE_URL")
+}
+
+enum ProductKind {
+  LOCAL
+  EXTERNAL
+}
+
+enum OrderStatus {
+  PENDING
+  DELIVERED
+  REFUNDED
+  NEEDS_ATTENTION
+}
+
+enum PointTxType {
+  TASK
+  REDEEM
+  REFUND
+}
+
+model User {
+  id           String   @id @default(uuid())
+  email        String   @unique
+  passwordHash String
+  displayName  String
+  balance      Int      @default(0)
+  createdAt    DateTime @default(now())
+
+  sessions    Session[]
+  completions TaskCompletion[]
+  orders      Order[]
+  points      PointTransaction[]
+}
+
+model Session {
+  tokenHash String   @id
+  userId    String
+  expiresAt DateTime
+  createdAt DateTime @default(now())
+
+  user User @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@index([userId])
+}
+
+model Task {
+  id          String  @id @default(uuid())
+  code        String  @unique
+  title       String
+  description String
+  reward      Int
+  sort        Int     @default(0)
+  active      Boolean @default(true)
+
+  completions TaskCompletion[]
+}
+
+model TaskCompletion {
+  id        String   @id @default(uuid())
+  userId    String
+  taskId    String
+  points    Int
+  createdAt DateTime @default(now())
+
+  user User @relation(fields: [userId], references: [id], onDelete: Cascade)
+  task Task @relation(fields: [taskId], references: [id], onDelete: Cascade)
+
+  @@unique([userId, taskId])
+  @@index([userId, createdAt])
+}
+
+model Product {
+  id                String      @id @default(uuid())
+  code              String      @unique
+  name              String
+  description       String
+  kind              ProductKind
+  providerProductId String?
+  price             Int
+  sort              Int         @default(0)
+  active            Boolean     @default(true)
+
+  orders Order[]
+}
+
+model Order {
+  id             String      @id @default(uuid())
+  userId         String
+  productId      String
+  idempotencyKey String
+  requestId      String      @unique
+  status         OrderStatus @default(PENDING)
+  pointsCost     Int
+  code           String?
+  providerStatus String?
+  attemptCount   Int         @default(0)
+  nextRetryAt    DateTime    @default(now())
+  lastError      String?
+  createdAt      DateTime    @default(now())
+  updatedAt      DateTime    @updatedAt
+  deliveredAt    DateTime?
+
+  user    User         @relation(fields: [userId], references: [id], onDelete: Cascade)
+  product Product      @relation(fields: [productId], references: [id])
+  events  OrderEvent[]
+
+  @@unique([userId, idempotencyKey])
+  @@index([userId, createdAt])
+  @@index([status, nextRetryAt])
+}
+
+model PointTransaction {
+  id           String      @id @default(uuid())
+  userId       String
+  delta        Int
+  balanceAfter Int
+  type         PointTxType
+  refType      String
+  refId        String
+  createdAt    DateTime    @default(now())
+
+  user User @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@unique([type, refId])
+  @@index([userId, createdAt])
+}
+
+model OrderEvent {
+  id         String   @id @default(uuid())
+  orderId    String
+  fromStatus String?
+  toStatus   String
+  note       String?
+  createdAt  DateTime @default(now())
+
+  order Order @relation(fields: [orderId], references: [id], onDelete: Cascade)
+
+  @@index([orderId, createdAt])
+}
