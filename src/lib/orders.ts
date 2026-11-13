@@ -78,12 +78,28 @@ export async function createOrder(
   if (!product) {
     throw new ApiError(404, "PRODUCT_NOT_FOUND", "Product not found");
   }
+  if (product.kind === "EXTERNAL" && !product.providerProductId) {
+    throw new ApiError(
+      422,
+      "PRODUCT_UNAVAILABLE",
+      "Product is not configured for external delivery",
+    );
+  }
 
   const existing = await prisma.order.findUnique({
     where: { userId_idempotencyKey: { userId, idempotencyKey } },
     include: { product: true },
   });
-  if (existing) return existing;
+  if (existing) {
+    if (existing.productId !== product.id) {
+      throw new ApiError(
+        409,
+        "IDEMPOTENCY_CONFLICT",
+        "Idempotency key was already used for a different product",
+      );
+    }
+    return existing;
+  }
 
   const orderId = newOrderId();
   const requestId = makeRequestId(orderId);
@@ -144,7 +160,16 @@ export async function createOrder(
         where: { userId_idempotencyKey: { userId, idempotencyKey } },
         include: { product: true },
       });
-      if (duplicate) return duplicate;
+      if (duplicate) {
+        if (duplicate.productId !== product.id) {
+          throw new ApiError(
+            409,
+            "IDEMPOTENCY_CONFLICT",
+            "Idempotency key was already used for a different product",
+          );
+        }
+        return duplicate;
+      }
     }
     throw error;
   }
@@ -165,6 +190,10 @@ export async function applyDeliveryResult(
   result: DeliveryResult,
   options?: { from?: OrderStatus[] },
 ): Promise<void> {
+  if (result.kind === "not_found") {
+    result = { kind: "retryable", reason: "Delivery not found after create" };
+  }
+
   const order = await prisma.order.findUnique({ where: { id: orderId } });
   if (!order) return;
 

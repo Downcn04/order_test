@@ -1,0 +1,2 @@
+-- AlterEnum
+ALTER TYPE "PointTxType" ADD VALUE 'ADJUSTMENT';

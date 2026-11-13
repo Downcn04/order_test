@@ -28,6 +28,21 @@ async function main() {
     },
   });
 
+  await prisma.pointTransaction.upsert({
+    where: {
+      type_refId: { type: "ADJUSTMENT", refId: "bob-initial-grant" },
+    },
+    update: {},
+    create: {
+      userId: bob.id,
+      delta: 200,
+      balanceAfter: 200,
+      type: "ADJUSTMENT",
+      refType: "seed",
+      refId: "bob-initial-grant",
+    },
+  });
+
   const tasks = [
     {
       code: "daily_checkin",

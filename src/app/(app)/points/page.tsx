@@ -7,6 +7,7 @@ const TYPE_LABELS: Record<string, string> = {
   TASK: "完成任务",
   REDEEM: "兑换商品",
   REFUND: "兑换退款",
+  ADJUSTMENT: "初始赠送",
 };
 
 function formatTime(value: Date): string {

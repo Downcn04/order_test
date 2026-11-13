@@ -23,6 +23,7 @@ enum PointTxType {
   TASK
   REDEEM
   REFUND
+  ADJUSTMENT
 }
 
 model User {

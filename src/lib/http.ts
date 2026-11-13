@@ -44,6 +44,9 @@ export async function handle(
       const issue = error.issues[0];
       return fail(400, "INVALID_REQUEST", issue?.message ?? "Invalid request");
     }
+    if (error instanceof SyntaxError) {
+      return fail(400, "INVALID_REQUEST", "Invalid JSON body");
+    }
     console.error("[api] unhandled error", error);
     return fail(500, "INTERNAL", "Internal server error");
   }
